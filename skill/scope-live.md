@@ -5,7 +5,8 @@ STAFF-COMPLETE. This is unit 4's real-world scope for pr-precheck,
 shipped in the ship-gate package as the swap the install performs:
 install.py copies this file over ~/.claude/skills/pr-precheck/scope.md
 and keeps the sandbox copy beside it as scope.md.sandbox. The copy you
-submitted in Module 1 stays untouched in your ai301-tools repo. Unit 4's
+submitted in Module 1 stays untouched in your course repo's
+tools/pr-precheck/ folder. Unit 4's
 staff materials said this file would be everyone's swap in unit 7; this
 is that swap.
 

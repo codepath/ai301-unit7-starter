@@ -9,8 +9,9 @@ your diff with
 
   echo ship-manifest.md >> .git/info/exclude
 
-(the mechanism your CLAUDE.local.md already uses). The evidence copy goes
-to your ai301-tools repo as ship-gate/gate-manifest.md.
+(the mechanism your CLAUDE.local.md already uses). The manifest stays on
+your machine with the gate log; Assignment 5 collects no copy of it, and
+the packaged gate is unit-9 portfolio material.
 
 WHERE THE COMMANDS COME FROM. Mine them, never invent them: the repo's
 contributing guide (CONTRIBUTING.md, or wherever the repo keeps it: a

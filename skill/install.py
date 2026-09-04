@@ -15,13 +15,13 @@ steps as the manual fallback and explains each one):
      swap for the other two is printed as the exact copy command.
   1. Copies the package (runner, hook block, manifest template, scope
      file, install, INSTALL.md) into ~/.claude/ship-gate/, so the folder
-     is self-contained and uploads as one unit.
+     is self-contained and travels as one unit.
   2. Merges the hook entry into ~/.claude/settings.json. A dated backup
      is written first; the merge is a JSON merge, never a text edit; a
      second run finds the entry present and changes nothing.
   3. Swaps pr-precheck's scope: the installed scope.md is kept beside it
      as scope.md.sandbox and the real-world scope takes its place. Your
-     submitted Module 1 copy in ai301-tools is never touched.
+     submitted Module 1 copy in your course repo's tools/ is never touched.
   4. With --repo PATH (the root of your clone): creates ship-manifest.md
      there from the template, never overwriting one you already have,
      and adds it, plus the three working files (plan.md,

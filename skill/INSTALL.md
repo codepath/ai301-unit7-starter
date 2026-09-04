@@ -15,14 +15,15 @@ real branch, and blocks the ship quoting exactly what failed. It is an
   the real-world one (`scope-live.md`, staff-complete; unit 4's staff
   materials were written for exactly this swap). Your previous scope
   is kept beside it as `scope.md.sandbox`, and the copy you submitted in
-  Module 1 stays untouched in your `ai301-tools` repo.
+  Module 1 stays untouched in your course repo's `tools/pr-precheck/`.
 - **Promoted:** nothing this week. Your voice guide moved to its one
   canonical home in unit 6; the gate reads it there, through the link
   in pr-precheck's own folder.
 - **Yours and untouched:** every file of pr-precheck as you wrote it
   (`SKILL.md`, `rubric.md`, `procedure.md`, your evidence guide, your
   voice guide), the scout, the voice-guard, the unit-1 harness, and
-  every Module 1 skill folder in `ai301-tools` exactly as submitted.
+  every Module 1 skill folder in your course repo's `tools/` exactly
+  as submitted.
 
 The gate never runs in eval mode. Nothing here touches how the unit-1
 or unit-4 harness measures your rubric, and nothing here edits a
@@ -221,8 +222,8 @@ with its outcome, the verdict, the reasons quoted. A passing run also
 records the package it passed (the commit sha and content
 fingerprints of the title, description, and manifest); that line is
 how the hook doorway recognizes a fresh manual pass. That file is
-your gate transcript. The activity's wrap has you upload the evidence pair
-to `ai301-tools` under `ship-gate/`: the log as `gate-transcript.md`
-and your manifest as run as `gate-manifest.md`, next to the package
-files from this folder, so the whole tool sits in your repo as one
-self-contained unit, portfolio-ready by construction.
+your gate transcript. The log, your manifest as run, and the package
+files from this folder stay on your machine as one self-contained
+unit: the unit-7 Toolkit entry in your round-1 README, in your own
+words, is what Assignment 5 reads, and the packaged gate is unit-9
+portfolio material.
