@@ -183,6 +183,16 @@ There is no override flag, by design. Every stop names its route:
   one model pass on a check near the line your rubric drew can land
   differently, and the route is the same, fix what it names or
   tighten the evidence it points at; never re-roll until it passes.
+- **A setup stop that names a repository or a base branch you did not
+  mean.** On the hook doorway the gate resolves the clone from your
+  Claude Code session's working directory, not from the repository
+  named in the `gh pr create` you typed, so a session rooted somewhere
+  other than your clone grades the wrong repository and says so
+  truthfully about it. Every hook-mode setup stop now prints the
+  directory it read: if that is not your clone, start a session there,
+  or run the manual doorway from the clone (section 3), which grades
+  where you are standing and whose pass the hook honors for 30
+  minutes.
 - **The guard stopped a ship the gate passed.** By contract: your
   pr-precheck reads your voice guide as feedback and never changes its
   verdict on it, the unit-6 guard blocks on the same guide. The voice

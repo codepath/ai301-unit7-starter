@@ -443,12 +443,17 @@ def load_scope() -> str:
     p = TOOL_DIR / "scope.md"
     text = p.read_text(encoding="utf-8", errors="replace") if p.is_file() \
         else ""
-    if not text.strip() or "PATH-REVIEW" in text or "<ORG>" in text:
+    # A cohort fills the staff placeholder before the term starts, so the
+    # brackets alone cannot tell a sandbox scope from a real-world one; the
+    # sentence naming the classroom repo survives the fill and does.
+    sandbox = ("PATH-REVIEW" in text or "<ORG>" in text
+               or "the course's Path Review repository" in text)
+    if not text.strip() or sandbox:
         raise GateStop("setup",
                        "pr-precheck's scope.md is "
                        + ("missing" if not text.strip() else
-                          "still the unit-4 sandbox scope (the Path "
-                          "Review placeholder)")
+                          "still the unit-4 sandbox scope (its field of "
+                          "view is the Path Review repo, not the wild)")
                        + ". Run the ship-gate install (`python3 "
                        "skill/install.py` from your Unit 7 materials); it "
                        "places the real-world scope over it and keeps "
@@ -520,7 +525,7 @@ def detect_base(root: Path, override) -> str:
         if git(root, "rev-parse", "--verify", "--quiet", override,
                ok=True) is None:
             raise GateStop("setup", f"base branch {override} not found "
-                                    "in this clone.")
+                                    f"in the clone at {root}.")
         return override
     for cand in ("main", "master"):
         if git(root, "rev-parse", "--verify", "--quiet",
@@ -531,8 +536,9 @@ def detect_base(root: Path, override) -> str:
     if ref and ref.startswith("refs/remotes/"):
         return ref[len("refs/remotes/"):]
     raise GateStop("setup",
-                   "could not tell the base branch (no main or master, "
-                   "no origin HEAD). Pass --base NAME.")
+                   "could not tell the base branch of the clone at "
+                   f"{root} (no main or master, no origin HEAD). "
+                   "Pass --base NAME.")
 
 
 def resolve_branch(root: Path, wanted, base: str) -> str:
@@ -1145,10 +1151,22 @@ def run_gate(mode: str, cwd: Path, branch_wanted, base_wanted, title,
                            "check is wrong, patch your rubric (it is "
                            "yours; note the patch and what drove it).")
     except GateStop as e:
+        message = e.message
+        if mode == "hook" and e.kind == "setup":
+            # The hook doorway resolves the clone from the Claude Code
+            # session's working directory, not from the repository named
+            # in the command it is gating. Say which directory was read,
+            # so a setup stop is never a true statement about the wrong
+            # repository.
+            message += (f" (The hook doorway graded {cwd}, the session's "
+                        "working directory. If that is not the clone your "
+                        "branch lives in, start a session there, or run "
+                        "the manual doorway from the clone: check_gate.py "
+                        "--branch NAME --title ... --body-file ...)")
         report.verdict = f"BLOCK ({e.kind})"
-        report.reasons.append(e.message)
+        report.reasons.append(message)
         log_run(report)
-        print(f"ship-gate: STOP. {e.message}", file=sys.stderr)
+        print(f"ship-gate: STOP. {message}", file=sys.stderr)
         return 2
     report.verdict = "PASS"
     log_run(report)

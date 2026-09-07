@@ -60,7 +60,13 @@ MANIFEST_NAME = "ship-manifest.md"
 # diff) join the manifest on the exclude list, so a `git status` slip
 # cannot commit them.
 WORKING_FILES = ["plan.md", "test_evidence.md", "pr_draft.md"]
-SANDBOX_TELLS = ("PATH-REVIEW", "<ORG>")
+# Two families of tell, because a cohort fills the placeholder before the
+# term starts: an unfilled sandbox scope still carries the staff brackets,
+# and a filled one still carries the sentence that names the classroom repo.
+# Sniffing only the brackets read a correctly configured sandbox scope as
+# already swapped, which is the one case this preflight exists for.
+SANDBOX_TELLS = ("PATH-REVIEW", "<ORG>",
+                 "the course's Path Review repository")
 WILD_SWAPS = {
     "repro-check": "repro-check-scope-wild.md",
     "plan-check": "plan-check-scope-wild.md",
@@ -85,6 +91,13 @@ def scope_state(skill: str) -> str:
     if not p.is_file():
         return "no-scope"
     text = p.read_text(encoding="utf-8", errors="replace")
+    if skill == "pr-precheck":
+        # Answer the way step 3 answers, by comparing content against the
+        # copy this package ships, so the preflight and the swap can never
+        # disagree about the same file.
+        live = (SRC / "scope-live.md").read_text(encoding="utf-8",
+                                                 errors="replace")
+        return "wild" if text == live else "sandbox"
     if any(t in text for t in SANDBOX_TELLS):
         return "sandbox"
     return "wild"
@@ -124,8 +137,8 @@ def preflight() -> int | None:
     for skill in ("repro-check", "plan-check", "pr-precheck"):
         st = scope_state(skill)
         if skill == "pr-precheck":
-            note = {"sandbox": "sandbox placeholder; this install swaps it "
-                               "in step 3",
+            note = {"sandbox": "not the real-world scope yet; this install "
+                               "swaps it in step 3 and keeps your copy",
                     "no-scope": "no scope.md; this install places the "
                                 "real-world one in step 3",
                     "wild": "already the real-world scope"}[st]
