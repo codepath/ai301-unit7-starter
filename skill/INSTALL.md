@@ -224,6 +224,6 @@ fingerprints of the title, description, and manifest); that line is
 how the hook doorway recognizes a fresh manual pass. That file is
 your gate transcript. The log, your manifest as run, and the package
 files from this folder stay on your machine as one self-contained
-unit: the unit-7 Toolkit entry in your round-1 README, in your own
-words, is what Assignment 5 reads, and the packaged gate is unit-9
-portfolio material.
+unit: the unit-7 Toolkit entry in your contribution story, in your
+own words, is what Assignment 5 reads, and the packaged gate is
+unit-9 portfolio material.
