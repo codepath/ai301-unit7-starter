@@ -114,6 +114,7 @@ CHECK_TIMEOUT_S = 1500        # per manifest check
 MODEL_TIMEOUT_S = 900         # the one rubric pass
 FRESH_PASS_WINDOW_S = 30 * 60  # a manual PASS carries to the hook this long
 GH_TIMEOUT_S = 45             # issue-thread fetch
+PARENT_TIMEOUT_S = 15         # asking GitHub what a fork was forked from
 MAX_DIFF_CHARS = 120_000
 MAX_DOC_CHARS = 20_000
 MAX_ISSUE_CHARS = 30_000
@@ -565,14 +566,32 @@ def resolve_branch(root: Path, wanted, base: str) -> str:
     return branch
 
 
+def fork_parent(repo: str) -> str | None:
+    """The repo this one was forked from, or None (not a fork, or GitHub
+    could not be asked)."""
+    try:
+        proc = sh(["gh", "api", f"repos/{repo}", "--jq",
+                   ".parent.full_name // empty"], timeout=PARENT_TIMEOUT_S)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    name = proc.stdout.strip() if proc.returncode == 0 else ""
+    return name if re.fullmatch(r"[\w.-]+/[\w.-]+", name) else None
+
+
 def repo_name(root: Path, fallback: str) -> str:
+    """The repo the pull request is for. Students clone their fork, so
+    origin is usually the fork; its parent on GitHub is the repo whose
+    issue the PR fixes."""
     for remote in ("upstream", "origin"):
         url = git(root, "remote", "get-url", remote, ok=True)
         if url:
             m = re.search(r"github\.com[:/]([^/\s]+/[^/\s]+?)(?:\.git)?/?$",
                           url)
             if m:
-                return m.group(1)
+                name = m.group(1)
+                if remote == "origin":
+                    return fork_parent(name) or name
+                return name
     return fallback or root.name
 
 
@@ -811,7 +830,7 @@ PROMPT_TEMPLATE = """\
 # Live inputs, gathered by the ship-gate for {item}
 
 The gate ran from the clone at {root}. Base branch: {base}. Branch
-under review: {branch}. Repository (from the clone's remotes): {repo}.
+under review: {branch}. Repository the pull request is for: {repo}.
 
 ## Draft PR title
 
