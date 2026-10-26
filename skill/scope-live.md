@@ -1,21 +1,14 @@
 # Scope: where your pull request lives, and the rules of the wild
 
 <!--
-STAFF-COMPLETE. This is unit 4's real-world scope for pr-precheck,
-shipped in the ship-gate package as the swap the install performs:
-install.py copies this file over ~/.claude/skills/pr-precheck/scope.md
-and keeps the sandbox copy beside it as scope.md.sandbox. The copy you
-submitted in Module 1 stays untouched in your course repo's
-tools/pr-precheck/ folder. Unit 4's
-staff materials said this file would be everyone's swap in unit 7; this
-is that swap.
+Staff wrote this file, and there's nothing to edit. The ship-gate install
+copies it over ~/.claude/skills/pr-precheck/scope.md and keeps your
+sandbox scope beside it as scope.md.sandbox. The copy of pr-precheck in
+your course repo's tools/ folder isn't touched.
 
-Like every scope file, this one is the tool's field of view, live mode
-only: the rubric (your rubric.md) decides whether a pull request is
-READY; the scope decides which repositories the tool may grade at all,
-and what the rules are where your pull request lands. In eval mode the
-bundle is the whole world and this file is ignored. There is nothing to
-edit.
+A scope tells your tool which repos it may check and what rules apply
+there. Your rubric still decides whether a pull request is ready. Eval
+runs never read this file.
 -->
 
 ## Where your pull request lives
