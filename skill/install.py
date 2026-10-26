@@ -35,6 +35,8 @@ Nothing here edits your tool's judgment files (SKILL.md, rubric.md,
 procedure.md, the evidence guide, the voice guide) or any other skill.
 """
 
+from __future__ import annotations
+
 import argparse
 import datetime
 import json

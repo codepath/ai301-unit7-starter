@@ -78,6 +78,8 @@ honored pass trusts your own log the same way. It is your own judgment
 with a latch on the door, not a security system.
 """
 
+from __future__ import annotations
+
 import argparse
 import datetime
 import hashlib
