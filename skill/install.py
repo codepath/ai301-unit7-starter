@@ -68,6 +68,9 @@ WILD_SWAPS = {
     "repro-check": "repro-check-scope-wild.md",
     "plan-check": "plan-check-scope-wild.md",
 }
+# Skills step 0 found without the scope for real repos; the closing
+# "Next" list repeats them so the copy command isn't missed.
+SCOPES_TO_SWAP: list[str] = []
 
 
 def say(msg: str) -> None:
@@ -154,6 +157,7 @@ def preflight() -> int | None:
                     "folder? Clone "
                     "https://github.com/codepath/ai301-unit6-starter "
                     "again.)")
+            SCOPES_TO_SWAP.append(skill)
         say(f"  {skill}: {note}")
     return None
 
@@ -317,7 +321,12 @@ def main() -> int:
     manifest_step = ("Fill in ship-manifest.md in your clone." if placed
                      else "Create ship-manifest.md with the two commands "
                      "above, then fill it in.")
-    say("done. Next:\n"
+    swap = ""
+    if SCOPES_TO_SWAP:
+        swap = (f"  0. From your Unit 6 materials folder, run the cp "
+                f"command step 0 printed for {' and '.join(SCOPES_TO_SWAP)}."
+                "\n")
+    say("done. Next:\n" + swap +
         "  1. Quit any open `claude` session. Claude Code only loads hooks "
         "when a session starts.\n"
         f"  2. {manifest_step} The comment at its top explains how.\n"

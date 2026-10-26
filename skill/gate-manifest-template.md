@@ -5,17 +5,17 @@ Your ship manifest. Before your PR opens, the ship-gate runs every
 command in the first table, in order, and stops the PR if one fails.
 You choose the checks, and the ship-gate runs them.
 
-1. Title. Replace <owner/repo> above with the original repo, like
-   psf/requests, not your fork.
+1. Title. Replace <owner/repo> above with the original repo's owner
+   and name from your issue's link, like psf/requests, not your fork.
 
 2. First table. List the two to four checks the project asks you to run
    before a PR, usually its tests and lint. Take each one from the
    project instead of making one up, and write where you found it in
    the Source column: CONTRIBUTING.md, a CI file in .github/workflows/,
    or the Build and test commands in your CLAUDE.local.md. If the
-   checks need a setup step first (like `uv sync`,
-   `.venv/bin/pip install -e ".[dev]"`, or `npm install`), make that the
-   first row.
+   checks fail in a fresh terminal until a setup step runs (like
+   `uv sync`, `.venv/bin/pip install -e ".[dev]"`, or `npm install`),
+   make that step the first row.
 
 3. Commands. The ship-gate runs each command in a fresh terminal at the
    top folder of your clone, without your virtual environment. Write
@@ -29,7 +29,8 @@ You choose the checks, and the ship-gate runs them.
    already fails on main, it needs a tool or service you can't run
    here, or it changes files when it runs (like a formatter) and would
    add them to your PR. Move a check here instead of deleting it, so
-   your pr-precheck can see what you skipped and why.
+   your pr-precheck can see what you skipped and why. If nothing goes
+   here, leave the table empty.
 
 If the project names no checks at all, write one row in the first table
 with the command none, and say in Source where you looked.

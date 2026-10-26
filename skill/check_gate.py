@@ -628,6 +628,8 @@ def run_checks(root: Path, checks: list[tuple[str, str, str]],
                            f"table of {MANIFEST_NAME} with a date and the "
                            "reason, instead of deleting the row." + hint)
         report.checks.append((name, cmd, f"ok ({secs:.0f}s)"))
+        print(f"ship-gate: repo check {i}/{n} `{name}`: ok ({secs:.0f}s)",
+              file=sys.stderr, flush=True)
 
 
 # ---------------------------------------------------------------------------
@@ -1102,8 +1104,10 @@ def run_gate(mode: str, cwd: Path, branch_wanted, base_wanted, title,
         tool = load_tool()
         scope = load_scope()
         voice, voice_note = load_voice()
-        print(f"ship-gate: {repo} @ {branch} against {base}; voice guide "
-              f"{voice_note}.", file=sys.stderr, flush=True)
+        line = f"ship-gate: {repo} @ {branch} against {base}"
+        if not voice_note.startswith("read through the symlink"):
+            line += f"; voice guide {voice_note}"
+        print(line, file=sys.stderr, flush=True)
         report.package = package_fingerprints(root, branch, title, body)
         if mode == "hook" and report.package:
             stamp = fresh_manual_pass(report.package)
