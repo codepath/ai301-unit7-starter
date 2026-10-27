@@ -1,62 +1,44 @@
-# AI301 Unit 7 starter: the ship-gate
+# AI301 Unit 7 materials: the ship-gate
 
-Materials for Unit 7 of AI301 (shipping it). This repo holds the
-unit's runnable package: the ship-gate, one installable unit that puts
-your own pr-precheck, plus a gate manifest you write, on your
-PR-opening doorway. All instructions live on the course portal
-(Overview, Activity, and Check-In tabs for Unit 7); this repo is the
-package those pages tell you to install.
+The ship-gate is a hook that runs before Claude Code opens a pull
+request. It runs the project's own checks from a manifest you write,
+then your pr-precheck from unit 4, and stops the PR if anything fails.
 
-## What's here
+The steps are on the Unit 7 **Assignment** tab in the course portal.
+This repo holds the files those steps use.
 
-- `skill/INSTALL.md`: what the install does step by step, the wiring
-  canary (expect two stops), the manual doorway, the fail-closed list
-  with the route out of each stop, the manual install fallback, and
-  the evidence trail.
-- `skill/install.py`: the packaged install (staff-complete; you write
-  no code). A preflight that changes nothing, the package copied into
-  `~/.claude/ship-gate/`, the hook entry merged into your Claude Code
-  settings with a dated backup written first, pr-precheck's scope
-  swapped to the real-world one with the sandbox copy kept beside it,
-  and `ship-manifest.md` placed at your clone root and kept out of
-  your diff.
-- `skill/check_gate.py`: the gate runner, both doorways. Hook mode
-  gates `gh pr create`; manual mode (`--branch`) is the same gate for
-  browser ships and dry runs. A manual pass from the last 30 minutes
-  carries to the hook doorway when the package is identical (same
-  commit, title, body, and manifest).
-- `skill/hooks-settings.json`: the hook entry the install merges into
-  `~/.claude/settings.json`.
-- `skill/gate-manifest-template.md`: THE HOLE. Your judgment about
-  which of the target repo's own checks must pass before a ship, one
-  row each with its source line; exclusions carry a date and a
-  reason, never silence. It lives at your clone root as
-  `ship-manifest.md`, out of your diff via `.git/info/exclude`.
-- `skill/scope-live.md`: the real-world scope that replaces
-  pr-precheck's unit-4 sandbox scope (the swap unit 4's staff
-  materials were written for; your previous scope is kept as
-  `scope.md.sandbox`).
+## Get it
 
-## Install
+```
+git clone https://github.com/codepath/ai301-unit7-starter.git
+```
 
-The Activity tab has the full steps and the warnings. In short: get
-this repo onto your machine (`git clone
-https://github.com/smoran02/ai301-unit7-starter.git`, or Code then
-Download ZIP on the repo page), then, with the path to your target
-repo's clone:
+Or click **Code**, then **Download ZIP**, on this page. Then follow the
+Assignment tab, starting with the install:
 
 ```
 python3 skill/install.py --repo <path to your clone>
 ```
 
-Then start a fresh `claude` session; settings load at startup. The
-install is an overlay onto what you already own: it adds the gate,
-swaps pr-precheck's scope, and touches nothing else. Every file of
-your pr-precheck as you wrote it, your voice-guard and its guide, the
-scout, and every Module 1 skill folder stay yours and untouched.
+You need Python 3.8 or newer (`python3 --version`).
 
-## No eval/ here, on purpose
+## What's here
 
-Unit 7 ships no eval set and no harness. The gate is a live-mode-only
-seam: nothing invokes it in eval mode, and it never reads or changes
-pr-precheck's eval mode or the unit-1 and unit-4 harness interfaces.
+- `skill/install.py`: the install. It copies the ship-gate into
+  `~/.claude/ship-gate/`, adds the hook to `~/.claude/settings.json`
+  after saving a backup, swaps pr-precheck's scope for the scope for
+  real repos, and creates `ship-manifest.md` in your clone.
+- `skill/INSTALL.md`: what the install does, how to test the hook, how
+  to run the ship-gate by hand, and what to do when it stops.
+- `skill/check_gate.py`: the ship-gate itself. Claude Code runs it
+  before `gh pr create`, and you can run it by hand with `--branch`.
+- `skill/gate-manifest-template.md`: the starting point for your
+  `ship-manifest.md`, the list of the project's checks that must pass.
+- `skill/scope-live.md`: pr-precheck's scope for real repos.
+- `skill/hooks-settings.json`: the hook entry the install adds.
+
+You write no code this unit. What you write is your manifest, plus any
+fixes your rubric needs once it checks a real branch.
+
+There's no eval set this unit, because the ship-gate only runs on real
+branches.

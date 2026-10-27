@@ -1,62 +1,43 @@
 # Ship manifest: <owner/repo>
 
 <!--
-THE GATE MANIFEST (the unit-7 hole). This file is your judgment about
-which of the target repo's OWN checks must pass before a pull request of
-yours goes out. Staff never write it; the gate runs it. It lives at the
-root of your clone as ship-manifest.md and never ships: keep it out of
-your diff with
+Your ship manifest. Before your PR opens, the ship-gate runs every
+command in the first table, in order, and stops the PR if one fails.
+You choose the checks, and the ship-gate runs them.
 
-  echo ship-manifest.md >> .git/info/exclude
+1. Title. Replace <owner/repo> above with the original repo's owner
+   and name from your issue's link, like psf/requests, not your fork.
 
-(the mechanism your CLAUDE.local.md already uses). The manifest stays on
-your machine with the gate log; Assignment 5 collects no copy of it, and
-the packaged gate is unit-9 portfolio material.
+2. First table. List the two to four checks the project asks you to run
+   before a PR, usually its tests and lint. Take each one from the
+   project instead of making one up, and write where you found it in
+   the Source column: CONTRIBUTING.md, a CI file in .github/workflows/,
+   or the Build and test commands in your CLAUDE.local.md. If the
+   checks fail in a fresh terminal until a setup step runs (like
+   `uv sync`, `.venv/bin/pip install -e ".[dev]"`, or `npm install`),
+   make that step the first row.
 
-WHERE THE COMMANDS COME FROM. Mine them, never invent them: the repo's
-contributing guide (CONTRIBUTING.md, or wherever the repo keeps it: a
-docs/contributing.rst, a README section; name the file you read), its
-CI config under .github/workflows, and the Build and test commands
-section of your own CLAUDE.local.md, which you wrote in unit 6 for
-exactly this moment. Every row names its source in the third column. A
-check with no source is a guess, and the gate stops on it.
+3. Commands. The ship-gate runs each command in a fresh terminal at the
+   top folder of your clone, without your virtual environment. Write
+   the form that works there: `uv run pytest` if the project uses uv,
+   `.venv/bin/pytest` if you made a virtual environment, `npx eslint .`
+   for an npm project. To test one, open a new terminal, cd into your
+   clone without activating anything, and run it.
 
-WRITE THE FRESH-SHELL FORM. The gate runs each command in a fresh shell
-at the clone root, on your machine, the same on both doorways: not in
-your activated terminal. So the guide's `pytest` after a venv activate
-is written here as the form that runs cold, `uv run pytest` or
-`.venv/bin/pytest`; its `eslint` as `npx eslint .`; whichever the
-repo's own setup makes true. The check is still mined and the source
-still names where it came from; `command not found` is the sign a row
-was written for your terminal instead. If the repo's checks need a
-setup step first (`npm install`, `uv sync`, `pip install -e .[dev]`),
-that step is your first must-pass row, sourced to the same guide.
+4. Second table. A check that fails for a reason your fix doesn't touch
+   goes here, with today's date and the reason. The usual reasons: it
+   already fails on main, it needs a tool or service you can't run
+   here, or it changes files when it runs (like a formatter) and would
+   add them to your PR. Move a check here instead of deleting it, so
+   your pr-precheck can see what you skipped and why. If nothing goes
+   here, leave the table empty.
 
-UNDER A PAGE. A manifest is a judgment, not a CI mirror: the two to four
-checks a reviewer would run before trusting your branch, not every
-matrix cell CI runs. Commands run from the clone root, in table order,
-exactly as written. The first failure stops the ship, and the gate
-quotes the command and the tail of its output. Put the fastest checks
-first; a suite that would outlast the session is a judgment call, the
-repo's quick subset if its docs name one, or a dated exclusion with the
-reason.
+If the project names no checks at all, write one row in the first table
+with the command none, and say in Source where you looked.
 
-THE DATED-EXCLUSION RULE. A check you decide must not gate this ship
-is excluded, never left out, with the date and the reason: red on main
-for reasons your PR never touches; a check you cannot run here (a
-toolchain or a service you lack, named); a check that rewrites tracked
-files and would dirty your diff. The reason column says which. Silence
-is never an option: an excluded check is a recorded judgment; a check
-you simply left out is a hole. Re-check each exclusion before you ship;
-a fixed main (or a toolchain you since installed) retires it.
-
-A repo whose docs name no checks at all gets ONE row in the first table
-whose command is the single word none and whose source says where you
-looked.
-
-Replace <owner/repo> in the title with the repo. Delete this whole
-comment once the tables are filled: the manifest carries judgment, not
-scaffolding.
+This file stays on your computer. The install added it to
+.git/info/exclude, so it never goes into your PR. When you're done,
+delete this comment.
 -->
 
 ## Must pass before a ship
@@ -67,6 +48,6 @@ scaffolding.
 
 ## Excluded, with a dated reason
 
-| Check | Command | Since | Why it does not gate this ship |
+| Check | Command | Date | Why it doesn't count against this PR |
 |---|---|---|---|
 |  |  |  |  |

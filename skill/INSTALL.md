@@ -1,208 +1,198 @@
-# Installing the ship-gate (one unit, and what the script does)
+# Installing the ship-gate
 
-This install puts a gate on your PR-opening doorway: before any pull
-request of yours goes out, the gate runs the repo's own checks from a
-manifest you write, then your own pr-precheck in live mode on your
-real branch, and blocks the ship quoting exactly what failed. It is an
-**overlay onto what you already own**, stated in every direction:
+The ship-gate is a hook. Before Claude Code runs `gh pr create`, it
+runs the checks in your ship manifest (the project's own tests and
+lint), then your pr-precheck from unit 4 on your branch. If anything
+fails, it stops the PR and tells you why. You can also run it by hand
+on your branch before you open the PR.
 
-- **Added:** the gate, as one folder at `~/.claude/ship-gate/`: the
-  runner `check_gate.py` (both doorways), one hook entry in your Claude
-  Code settings (`hooks-settings.json` is the block), the manifest
-  template `gate-manifest-template.md`, and the real-world scope file.
-  All staff-complete; you write no code.
-- **Replaced:** pr-precheck's `scope.md`, the unit-4 sandbox scope for
-  the real-world one (`scope-live.md`, staff-complete; unit 4's staff
-  materials were written for exactly this swap). Your previous scope
-  is kept beside it as `scope.md.sandbox`, and the copy you submitted in
-  Module 1 stays untouched in your course repo's `tools/pr-precheck/`.
-- **Promoted:** nothing this week. Your voice guide moved to its one
-  canonical home in unit 6; the gate reads it there, through the link
-  in pr-precheck's own folder.
-- **Yours and untouched:** every file of pr-precheck as you wrote it
-  (`SKILL.md`, `rubric.md`, `procedure.md`, your evidence guide, your
-  voice guide), the scout, the voice-guard, the unit-1 harness, and
-  every Module 1 skill folder in your course repo's `tools/` exactly
-  as submitted.
+The Unit 7 Assignment tab walks you through the install and everything
+after it. This file explains what the install does, and what to do when
+something stops.
 
-The gate never runs in eval mode. Nothing here touches how the unit-1
-or unit-4 harness measures your rubric, and nothing here edits a
-judgment file of yours: if the gate ever blocks a ship, the words it
-quotes are the repo's own check or your own rubric, nothing else.
+What the install changes:
+
+- **Adds** a `~/.claude/ship-gate/` folder with the ship-gate's six
+  files, and one hook entry in `~/.claude/settings.json`.
+- **Replaces** pr-precheck's `scope.md` (the unit 4 sandbox scope) with
+  the scope for real repos. Your old scope is kept beside it as
+  `scope.md.sandbox`.
+- **Adds to your clone** a `ship-manifest.md` for you to fill in. It
+  lists that file and your three working files (`plan.md`,
+  `test_evidence.md`, and `pr_draft.md`) in `.git/info/exclude`, so they
+  stay out of your commits.
+
+It doesn't touch anything else: your rubric and the rest of
+pr-precheck, your other skills, your voice guard, or the copies in your
+course repo's `tools/` folder. The ship-gate never runs during eval
+runs, so it doesn't change how your eval harness grades your rubric.
+
+You need Python 3.8 or newer (`python3 --version`) and `gh`, logged in.
 
 ## 1. Run the install
 
-From the folder where you unpacked the Unit 7 materials, with your
-clone's root as the argument:
+From your Unit 7 materials folder, with the full path to your clone of
+your issue's repo:
 
 ```
 python3 skill/install.py --repo <path to your clone>
 ```
 
-What the script does, in order (the numbers match its output):
+It works through these steps and prints a line for each:
 
-0. **Preflight, changing nothing.** Your pr-precheck must be installed
-   at `~/.claude/skills/pr-precheck/` (the gate wraps YOUR tool and
-   nothing else; a still-empty tool installs fine and the gate will
-   refuse honestly until you finish it). It then reads the three
-   sandbox scopes, repro-check, plan-check, and pr-precheck, for the
-   Path Review placeholder: pr-precheck's swap is step 3 below; a
-   missing unit-6 swap for the other two is printed as the exact copy
-   command, so a live run in the wild never refuses on you later. The
-   command runs from your unpacked Unit 6 materials; if those are gone,
-   the Unit 6 materials link in course chat downloads them again.
-1. **Copies the package** into `~/.claude/ship-gate/`, all six files,
-   so the folder is self-contained and uploads as one unit.
-2. **Merges the hook entry** into `~/.claude/settings.json`. A dated
-   backup of your settings is written first; the merge is a JSON merge,
-   never a text edit; the unit-6 voice-guard's entry is left exactly as
-   it is; a second run finds the entry present and changes nothing.
-   The install writes your absolute home path into the hook command,
-   which is what unit 6's wiring fix did by hand.
-3. **Swaps pr-precheck's scope**: your installed `scope.md` is kept as
-   `scope.md.sandbox` and the real-world scope takes its place. From
-   now on pr-precheck's field of view is any public repository.
-4. **Places your manifest**: `ship-manifest.md` is created at your
-   clone's root from the template (never overwriting one you already
-   have) and added to `.git/info/exclude`, the mechanism your
-   `CLAUDE.local.md` already uses, so it never enters your diff. The
-   three working files, `plan.md`, `test_evidence.md`, and
-   `pr_draft.md`, go on the same list: they are working notes by the
-   unit-4 rule, and the exclude line means a `git status` slip cannot
-   commit them. No `--repo`? The script prints the commands to run from
-   the clone root later.
+0. **Checks first, changing nothing.** pr-precheck has to be at
+   `~/.claude/skills/pr-precheck/`. It can be unfinished for now; the
+   ship-gate says what's missing when it runs. The install also checks
+   that repro-check and plan-check have the scopes for real repos from
+   unit 6. If one doesn't, it prints a `cp` command. Run that from your
+   Unit 6 materials folder (deleted it? Clone
+   `https://github.com/codepath/ai301-unit6-starter` again).
+1. **Copies the ship-gate's files** into `~/.claude/ship-gate/`.
+2. **Adds the hook** to `~/.claude/settings.json`. It saves a dated
+   backup of your settings first and leaves your voice guard's entry as
+   it is. Running the install again doesn't add a second copy.
+3. **Swaps pr-precheck's scope** for the scope for real repos, and
+   keeps your old one as `scope.md.sandbox`.
+4. **Creates `ship-manifest.md`** in the top folder of your clone,
+   unless one is already there, and adds it and the three working files
+   to `.git/info/exclude`. Without `--repo`, it prints the two commands
+   to run from your clone instead.
 
-If the script stops, it says why and changes nothing: pr-precheck not
-installed (install its shell from your Unit 4 materials first), a
-`settings.json` it cannot parse or whose `hooks` block has the wrong
-shape (fix the JSON, then re-run), or a package file missing (run it
-from the unpacked materials). Every stop happens in the preflight,
-before anything is copied.
+If it stops, it says why and changes nothing. It stops when:
 
-Then **start a fresh `claude` session**: settings load at startup.
+- pr-precheck isn't installed. Copy the `skill/` folder from your Unit 4
+  materials to `~/.claude/skills/pr-precheck/`, then run the install
+  again.
+- `~/.claude/settings.json` isn't valid JSON, or its `hooks` part has
+  the wrong shape. `python3 -m json.tool ~/.claude/settings.json` shows
+  where it breaks. Fix it, then run the install again.
+- One of its files is missing. Run it from your Unit 7 materials folder.
 
-## 2. Prove the latch is on (expect two stops)
+If `--repo` isn't the top folder of your clone, steps 1 to 3 still run,
+and it stops at step 4. Run it again with the right path. Running it
+twice is safe.
 
-The wiring canary costs nothing and should be STOPPED. The activity has
-you write the manifest first and run the canary second; either order
-works, because the canary stops before the manifest is read:
+Then quit any open `claude` session. Claude Code only loads hooks when a
+session starts.
+
+## 2. Test the hook (expect two stops)
+
+From your clone:
 
 ```
 claude "run this command: gh pr create --help"
 ```
 
-Expect **two** stops on this door, and that is correct. Since unit 6
-your voice-guard also fires on `gh pr create`: it reads the words (the
-PR body against your voice guide), and a body-less command has none, so
-it stops. The ship-gate reads readiness (the branch against your
-manifest and your rubric), and a command with no title and no body is
-stopped at the door on purpose, before any check runs and before any
-model call, so it stops too. The guard owns voice; the gate owns
-readiness; each quotes its own reason. Read the gate's: its line
-starts with `ship-gate: STOP.` Both stops together are the pass. Real
-ships always carry `--title` and `--body-file`, and a plain terminal
-still runs `gh pr create --help` fine.
+You should see two stops. Your voice guard from unit 6 stops it because
+there's no PR description to check, and the ship-gate stops it because
+there's no title or description for your pr-precheck to read. The
+ship-gate's line starts with `ship-gate: STOP.` Two stops means both
+hooks work. This test doesn't run any checks or use any course credit.
 
-If the command runs unblocked instead: you are in the session that was
-open during the install (start a fresh one), or step 2's merge did not
-land (check that `~/.claude/settings.json` is valid JSON and lists a
-`PreToolUse` entry whose command names `ship-gate/check_gate.py`).
-Those two cover nearly every miss.
+If the command runs instead:
 
-## 3. The manual doorway
+- You're in a `claude` session that was open during the install. Quit
+  it and start a new one.
+- The hook wasn't added. Check that `~/.claude/settings.json` is valid
+  JSON and that its `PreToolUse` list has an entry whose command names
+  `ship-gate/check_gate.py`.
 
-For a pull request you will open in the browser, and for dry runs at
-any branch state, the same gate runs by hand. From your clone, on your
+Only one stop? One hook is missing. If it's the voice guard's, finish
+section 4 of INSTALL.md in your Unit 6 materials.
+
+## 3. Run the ship-gate by hand
+
+Run it on your branch before you open the PR. From your clone, on your
 branch:
 
 ```
 python3 ~/.claude/ship-gate/check_gate.py --branch --title "<your PR title>" --body-file pr_draft.md
 ```
 
-`--branch` alone means the branch you are on; `--branch NAME` names
-another. `--title` and `--body-file` carry the draft your pr-precheck
-reads: the title on the flag, the description in the file (leave them
-off for a dry run and the report will say the draft is absent).
-`--base NAME` overrides the base branch (the default is `main`, then
-`master`, then origin's HEAD; pass it whenever the repo's contributing
-guide sends pull requests at another branch, such as `dev`). `--plan
-FILE` and `--evidence FILE` point at a plan or test-evidence file that
-does not sit at the clone root as `plan.md` and `test_evidence.md`,
-and `--issue URL` names the issue when the PR text and plan do not.
-You get the same verdict shape either doorway: pass, or the exact
-reason quoted. A pass here carries to the hook doorway for 30
-minutes: on the identical package (same commit, same title, same
-description, same manifest) a `gh pr create` goes straight through
-without a second run, because the manual doorway is the same gate.
+It runs your manifest's checks, then your pr-precheck on your branch,
+`plan.md`, `test_evidence.md`, and `pr_draft.md`. It either says
+`ship-gate: PASS` or stops and says why. Each run takes a few minutes
+and uses some course credit.
 
-## 4. What stops the gate, and the route out
+- `--branch` alone checks the branch you're on. `--branch NAME` checks
+  another one.
+- `--base NAME` sets the branch your PR goes into. The default is
+  `main`, then `master`. Add it if the repo takes PRs on another branch,
+  like `dev`.
+- `--plan FILE` and `--evidence FILE` point at your plan and test
+  evidence if they aren't `plan.md` and `test_evidence.md` in the top
+  folder of your clone.
+- `--issue URL` names the issue. You only need it if your description
+  has no `Fixes #<issue number>` line. The ship-gate looks that number
+  up on the repo your fork came from.
 
-There is no override flag, by design. Every stop names its route:
+A pass lasts 30 minutes. If you open the PR through Claude Code within
+30 minutes, with the same commit, title, description, and manifest, the
+hook lets it through without running everything again. Change any of
+those and it runs fresh.
 
-- **No manifest, or a manifest still the template.** Fill
-  `ship-manifest.md` at the clone root: the repo's own checks, one row
-  each, with the source it came from. A row with a command and no
-  source stops the gate too; so does an exclusion without a date and a
-  reason.
-- **Your pr-precheck is missing or still templates.** The gate reports
-  the REFUSAL honestly: that is your tool's own unit-4 design telling
-  the truth, not the gate breaking. The sanctioned route is finishing
-  your own pr-precheck as Assignment 5 working time; TFs route this.
-  Never copy a master: the gate quotes your rubric, so it has to be
-  yours.
-- **pr-precheck's scope is still the sandbox.** Run the install (step
-  3 places the real-world scope).
-- **Your voice guide has no canonical home.** The gate reads the guide
-  of record, never the frozen unit-4 copy: finish unit 6's INSTALL
-  step 3 (the `mv` to `~/.claude/voice-guard/` and the `ln -sf` back
-  into pr-precheck). The documented pointer-line fallback works too.
-- **A manifest check failed.** The gate quotes the command, its exit
-  code, and the tail of its output. Fix what it names; if you decide it
-  must not gate this ship, record a dated exclusion in the manifest
-  instead of deleting the row. The legal reasons are the template's:
-  red on main for reasons your PR never touches; a check you cannot
-  run here (a toolchain or a service you lack, named); a check that
-  rewrites tracked files and would dirty your diff. Exit 127 (`command
-  not found`) means the row was written for your activated terminal:
-  the gate runs a fresh shell at the clone root on both doorways, so
-  write the form that runs there (`uv run pytest`, `.venv/bin/ruff
-  check .`, `npx eslint .`), still mined from the repo's setup, still
-  sourced. A module-not-found error from a package runner (`jest` not
-  found under `npm run test`) is the second tell in the same family:
-  the repo's setup step (`npm install`, `uv sync`, `pip install -e
-  .[dev]`) has not run in this clone, and that step belongs in your
-  manifest as its own first must-pass row, sourced to the same guide.
-- **Your pr-precheck said reject.** The gate quotes the checks that did
-  not pass, in your rubric's words, with their evidence lines: that is
-  your next-step list, in order. Fix what it names, or, if a check is
-  wrong, patch your rubric (it is yours; note the patch and what drove
-  it in your Toolkit entry). A fresh manual pass is honored at the
-  door (section 3), so a reject here right after one means something
-  changed: a new commit, an edited title or description, an edited
-  manifest, or a pass older than 30 minutes. On the changed package
-  one model pass on a check near the line your rubric drew can land
-  differently, and the route is the same, fix what it names or
-  tighten the evidence it points at; never re-roll until it passes.
-- **A setup stop that names a repository or a base branch you did not
-  mean.** On the hook doorway the gate resolves the clone from your
-  Claude Code session's working directory, not from the repository
-  named in the `gh pr create` you typed, so a session rooted somewhere
-  other than your clone grades the wrong repository and says so
-  truthfully about it. Every hook-mode setup stop now prints the
-  directory it read: if that is not your clone, start a session there,
-  or run the manual doorway from the clone (section 3), which grades
-  where you are standing and whose pass the hook honors for 30
-  minutes.
-- **The guard stopped a ship the gate passed.** By contract: your
-  pr-precheck reads your voice guide as feedback and never changes its
-  verdict on it, the unit-6 guard blocks on the same guide. The voice
-  notes in a passing gate report are the preview; fix the line, then
-  ship.
+## 4. What stops the ship-gate, and what to do
 
-## 5. The manual fallback
+There's no way to skip the ship-gate. Every stop says what to fix.
 
-If the script cannot run on your machine, the same install by hand is
-unit 6's practiced motion:
+- **No manifest, or it's still the template.** Fill in
+  `ship-manifest.md` in the top folder of your clone. The comment at its
+  top explains how. A check with no source stops it too, and so does a
+  row in the second table without a date and a reason.
+- **A repo check failed.** It shows the command, its exit code, and the
+  end of its output. Fix your code. If the check also fails on main,
+  for a reason your fix doesn't touch, move it to the manifest's second
+  table with a date and the reason instead of deleting it.
+  - **`exited 127`** means the command wasn't found. The ship-gate runs
+    each row in a fresh terminal at the top folder of your clone, not in
+    your terminal where your virtual environment is active. Rewrite the
+    row so it runs there: `uv run pytest` if the project uses uv,
+    `.venv/bin/pytest` if you made a virtual environment, `npx eslint .`
+    for an npm project.
+  - **A "not found" error from inside the command** (like `jest` not
+    found under `npm run test`) usually means the project's setup step
+    hasn't run in this clone. Add that step (like `uv sync`,
+    `.venv/bin/pip install -e ".[dev]"`, or `npm install`) as the first
+    row of your manifest, with the same source.
+  - **`timed out`** means the check ran for 25 minutes. Use a quicker
+    command the project names, if it names one, or move the check to
+    the second table with the reason.
+- **Your pr-precheck said reject.** It lists the checks your branch
+  failed, in your rubric's words. Fix your branch. If a check asks for
+  something this repo doesn't ask for, fix that check in your rubric
+  instead, and say so in your Unit 7 Toolkit entry. A reject right after
+  a pass means something changed (a commit, the title, the description,
+  or the manifest), or the pass is more than 30 minutes old. Fix what
+  it names instead of running it again and hoping for a pass.
+- **REFUSAL.** Your pr-precheck still has template files with nothing of
+  yours in them, and the message names them. Fill them in yourself,
+  then run the ship-gate again. Ask your TF if you need help finishing
+  them.
+- **pr-precheck's scope is still the sandbox one.** Run the install
+  again. Step 3 swaps it.
+- **No voice guide where the ship-gate looks.** It reads the guide your
+  voice guard uses, at `~/.claude/voice-guard/voice-guide.md`. Finish
+  section 3 of INSTALL.md in your Unit 6 materials.
+- **It names a folder or repo you didn't expect.** The hook checks the
+  folder your `claude` session started in, not the repo in the command.
+  Start `claude` from inside your clone, or run the ship-gate by hand
+  from there (section 3).
+- **Other stops about your branch or setup.** You're on `main` instead
+  of your branch, the branch has no changes yet, the clone isn't on any
+  branch, the base branch can't be found (add `--base`), the `claude`
+  command isn't found, a pr-precheck file is missing, or you used
+  `gh pr create --web`. Each message says what to do.
+- **pr-precheck couldn't finish its run.** Nothing was checked, so the
+  PR didn't open. Run it again, and ask your TF if it keeps happening.
+- **Your voice guard stopped a PR the ship-gate passed.** pr-precheck
+  notes voice problems but doesn't reject over them unless your rubric
+  says to. Your voice guard does stop on them. Fix the line it quotes in
+  `pr_draft.md`, and run the command again.
+
+## 5. Installing by hand
+
+If the install script won't run on your computer, do the same steps
+yourself. From your Unit 7 materials folder:
 
 ```
 mkdir -p ~/.claude/ship-gate
@@ -211,29 +201,28 @@ cp ~/.claude/skills/pr-precheck/scope.md ~/.claude/skills/pr-precheck/scope.md.s
 cp skill/scope-live.md ~/.claude/skills/pr-precheck/scope.md
 ```
 
-Then merge the block in `skill/hooks-settings.json` into
-`~/.claude/settings.json` exactly as you did in unit 6 (no `hooks` key
-yet: paste the whole block; hooks already there: add the `PreToolUse`
-entry to the list), replacing `$HOME` in its command with your absolute
-home directory path. Finally, from your clone's root:
+Then add the hook from `skill/hooks-settings.json` to
+`~/.claude/settings.json`, the way you added your voice guard's in
+unit 6. If there's no `hooks` key yet, paste in the whole block. If there
+is, add the entry to its `PreToolUse` list. Replace `$HOME` in the
+command with the full path to your home folder. Then, from the top
+folder of your clone:
 
 ```
 cp ~/.claude/ship-gate/gate-manifest-template.md ship-manifest.md
 printf '%s\n' ship-manifest.md plan.md test_evidence.md pr_draft.md >> .git/info/exclude
 ```
 
-Start a fresh `claude` session and run section 2's canary.
+Quit any open `claude` session, and run the test in section 2.
 
-## 6. The evidence trail
+## 6. The log
 
-Every run, both doorways, appends a dated block to
-`~/.claude/ship-gate/gate-log.md`: repo, branch, each manifest check
-with its outcome, the verdict, the reasons quoted. A passing run also
-records the package it passed (the commit sha and content
-fingerprints of the title, description, and manifest); that line is
-how the hook doorway recognizes a fresh manual pass. That file is
-your gate transcript. The log, your manifest as run, and the package
-files from this folder stay on your machine as one self-contained
-unit: the unit-7 Toolkit entry in your contribution story, in your
-own words, is what Assignment 5 reads, and the packaged gate is
-unit-9 portfolio material.
+Every run, by hand or through the hook, adds a dated entry to
+`~/.claude/ship-gate/gate-log.md`: the repo, the branch, each check and
+how it went, the result, and the reasons. A pass also records the
+commit and fingerprints of the title, description, and manifest, which
+is how the hook knows a pass is still good.
+
+The log and your manifest stay on your computer, and nothing collects
+them. Use them when you write your Unit 7 Toolkit entry, and again for
+your unit 9 portfolio.
