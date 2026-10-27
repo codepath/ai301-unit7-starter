@@ -14,9 +14,11 @@ You can also run it by hand on your branch, without opening a PR:
   python3 ~/.claude/ship-gate/check_gate.py --branch --title "..." --body-file pr_draft.md
 
 A pass by hand lasts 30 minutes. If you then open the PR through
-Claude Code with the same commit, title, description, and manifest, the
-hook lets it through without running everything again. Change any of
-them and it runs fresh. Setup problems (a broken manifest, an
+Claude Code with the same commit, base, title, description, manifest,
+plan, and test evidence, the hook lets it through without running
+everything again. Change any of them and it runs fresh. Through the
+hook, a run stops itself at 29 minutes, because Claude Code ends a hook
+at 30 and an ended hook lets the PR through. Setup problems (a broken manifest, an
 unfinished pr-precheck, a sandbox scope, a missing voice guide) always
 stop it.
 
@@ -78,6 +80,10 @@ MANIFEST_NAME = "ship-manifest.md"
 
 CHECK_TIMEOUT_S = 1500        # per manifest check
 MODEL_TIMEOUT_S = 900         # the one rubric pass
+# hooks-settings.json gives the hook 1800s. Claude Code kills a hook that
+# runs longer and then lets the command through, so in hook mode the
+# whole run stops itself a minute short of that.
+HOOK_BUDGET_S = 1740
 FRESH_PASS_WINDOW_S = 30 * 60  # a manual PASS carries to the hook this long
 GH_TIMEOUT_S = 45             # issue-thread fetch
 PARENT_TIMEOUT_S = 15         # asking GitHub what a fork was forked from
@@ -130,7 +136,10 @@ class Report:
 # ---------------------------------------------------------------------------
 
 def sh(args: list[str], cwd=None, timeout: int = 60):
+    # errors="replace": a diff of a Latin-1 file or a stray byte in gh's
+    # output must not crash the gate (a crash would let the PR through).
     return subprocess.run(args, cwd=cwd, capture_output=True, text=True,
+                          encoding="utf-8", errors="replace",
                           timeout=timeout)
 
 
@@ -165,6 +174,24 @@ def clip(text: str, limit: int, label: str) -> str:
 
 def strip_comments(text: str) -> str:
     return re.sub(r"<!--.*?-->", "", text, flags=re.DOTALL)
+
+
+def time_left(deadline, cap: int) -> int:
+    """Seconds the next step may take: cap, or less when the hook's
+    budget is nearly spent. Stops the run when the budget is gone."""
+    if deadline is None:
+        return cap
+    left = int(deadline - time.monotonic())
+    if left < 30:
+        raise GateStop("block",
+                       "the ship-gate ran out of time: Claude Code stops a "
+                       "hook after 30 minutes, and a stopped hook would "
+                       "let the PR through, so the ship-gate stopped it "
+                       "first. Run it by hand on your branch (python3 "
+                       "~/.claude/ship-gate/check_gate.py --branch --title "
+                       "\"...\" --body-file pr_draft.md), which has no time "
+                       "limit, then open the PR within 30 minutes.")
+    return min(cap, left)
 
 
 def read_first(root: Path, candidates: list[str]):
@@ -266,7 +293,11 @@ def load_manifest(root: Path) -> dict:
         if not name and not cmd and not source:
             continue
         if not cmd:
-            continue
+            raise GateStop("setup",
+                           f"{MANIFEST_NAME}: the check `{name or source}` "
+                           "has no command. In the Command column, write "
+                           "the command the project runs for it, or none "
+                           "if the project names no checks.")
         if not source:
             raise GateStop("setup",
                            f"{MANIFEST_NAME}: the check `{name or cmd}` "
@@ -570,7 +601,7 @@ def check_env() -> dict:
 
 
 def run_checks(root: Path, checks: list[tuple[str, str, str]],
-               report: Report) -> None:
+               report: Report, deadline=None) -> None:
     n = len(checks)
     if not n:
         print("ship-gate: the manifest names no repo checks (the `none` "
@@ -579,13 +610,15 @@ def run_checks(root: Path, checks: list[tuple[str, str, str]],
     for i, (name, cmd, source) in enumerate(checks, 1):
         print(f"ship-gate: repo check {i}/{n} `{name}`: {cmd}",
               file=sys.stderr, flush=True)
+        limit = time_left(deadline, CHECK_TIMEOUT_S)
         t0 = time.monotonic()
         try:
             proc = subprocess.run(cmd, shell=True, cwd=root,
                                   capture_output=True, text=True,
-                                  timeout=CHECK_TIMEOUT_S, env=check_env())
+                                  encoding="utf-8", errors="replace",
+                                  timeout=limit, env=check_env())
         except subprocess.TimeoutExpired:
-            outcome = f"timed out after {CHECK_TIMEOUT_S}s"
+            outcome = f"timed out after {limit}s"
             report.checks.append((name, cmd, outcome))
             raise GateStop("block",
                            f"the repo's own check `{name}` {outcome}: "
@@ -610,9 +643,9 @@ def run_checks(root: Path, checks: list[tuple[str, str, str]],
                         "pytest` if the project uses uv, "
                         "`.venv/bin/pytest` if you made a virtual "
                         "environment, `npx eslint .` for an npm project.")
-            elif re.search(r"(?i)cannot find module|not found|"
-                           r"no module named|command .* does not exist",
-                           out):
+            elif re.search(r"(?i)cannot find module|no module named|"
+                           r"command .* does not exist|: not found$",
+                           out, re.MULTILINE):
                 hint = (" A not-found error like this usually means the "
                         "project's setup step hasn't run in this clone "
                         "(like `uv sync`, `.venv/bin/pip install -e "
@@ -900,7 +933,7 @@ def manifest_block(manifest: dict, checks_run: list) -> str:
 
 def run_precheck(tool: dict, scope: str, voice: str, live: dict,
                  item: str, root: Path, base: str, branch: str,
-                 repo: str) -> tuple[dict, str]:
+                 repo: str, deadline=None) -> tuple[dict, str]:
     """One Sonnet call carrying the student's tool and the gathered live
     inputs, the way the harnesses always have. Returns (verdict object,
     readable summary)."""
@@ -926,17 +959,19 @@ def run_precheck(tool: dict, scope: str, voice: str, live: dict,
           f"{branch} (one {MODEL} call)...", file=sys.stderr, flush=True)
     last_err = None
     for _ in range(2):
+        limit = time_left(deadline, MODEL_TIMEOUT_S)
         try:
             proc = subprocess.run(["claude", "-p", "--model", MODEL],
                                   input=prompt, capture_output=True,
-                                  text=True, timeout=MODEL_TIMEOUT_S,
+                                  text=True, encoding="utf-8",
+                                  errors="replace", timeout=limit,
                                   env=env)
         except FileNotFoundError:
             raise GateStop("block", "the claude CLI is not on PATH, so "
                                     "your pr-precheck can't run, and the "
                                     "ship-gate stops the PR until it can.")
         except subprocess.TimeoutExpired:
-            last_err = f"the rubric pass timed out after {MODEL_TIMEOUT_S}s"
+            last_err = f"the rubric pass timed out after {limit}s"
             continue
         if proc.returncode != 0:
             said = (proc.stderr or proc.stdout or "").strip()
@@ -951,6 +986,14 @@ def run_precheck(tool: dict, scope: str, voice: str, live: dict,
         except ValueError as e:
             last_err = f"bad JSON in the pr-precheck output: {e}"
             continue
+        if not isinstance(data, dict):
+            last_err = ("the pr-precheck JSON block is not an object with "
+                        "a verdict")
+            continue
+        checks = data.get("checks")
+        data["checks"] = [c if isinstance(c, dict) else {"name": str(c)}
+                          for c in (checks if isinstance(checks, list)
+                                    else [])]
         verdict = str(data.get("verdict", "")).lower()
         if verdict not in ("accept", "reject"):
             last_err = f"pr-precheck verdict was {verdict!r}, not " \
@@ -974,27 +1017,49 @@ def _fingerprint(text) -> str:
     return hashlib.sha256((text or "").encode("utf-8")).hexdigest()[:12]
 
 
-def package_fingerprints(root: Path, branch: str, title, body):
-    """The four fingerprints that pin one package: the branch's commit
-    sha and content hashes of the draft title, the draft body, and the
-    manifest as it sits on disk. None when any of them cannot be read;
-    the gate then simply runs."""
+PACKAGE_KEYS = ("head", "base", "title", "body", "manifest", "plan",
+                "evidence", "issue")
+
+
+def _read_or_empty(p: Path) -> str:
+    try:
+        return p.read_text(encoding="utf-8", errors="replace") \
+            if p.is_file() else ""
+    except OSError:
+        return ""
+
+
+def package_fingerprints(root: Path, branch: str, base: str, repo: str,
+                         title, body, issue, plan_path, evidence_path):
+    """The fingerprints that pin one package: the branch's and base's
+    commit shas, and content hashes of the draft title, the draft body,
+    the manifest, the plan, the test evidence, and the issue the gate
+    would read. None when the commits or manifest cannot be read; the
+    gate then simply runs."""
     head = git(root, "rev-parse", branch, ok=True)
-    if not head:
+    base_sha = git(root, "rev-parse", base, ok=True)
+    if not head or not base_sha:
         return None
     try:
         manifest_raw = (root / MANIFEST_NAME).read_text(encoding="utf-8",
                                                         errors="replace")
     except OSError:
         return None
-    return {"head": head, "title": _fingerprint(title),
+    plan = _read_or_empty(Path(plan_path) if plan_path
+                          else root / "plan.md")
+    evidence = _read_or_empty(Path(evidence_path) if evidence_path
+                              else root / "test_evidence.md")
+    return {"head": head, "base": base_sha, "title": _fingerprint(title),
             "body": _fingerprint(body),
-            "manifest": _fingerprint(manifest_raw)}
+            "manifest": _fingerprint(manifest_raw),
+            "plan": _fingerprint(plan), "evidence": _fingerprint(evidence),
+            "issue": _fingerprint(find_issue(root, repo, issue, body, plan))}
 
 
 _LOG_HEADER_RE = re.compile(r"^## (\d{4}-\d{2}-\d{2} \d{2}:\d{2}) \[(\w+)\]")
-_LOG_PACKAGE_RE = re.compile(r"^- (?:package|fingerprints): head (\S+) "
-                             r"title (\S+) body (\S+) manifest (\S+)$")
+_LOG_PACKAGE_RE = re.compile(
+    r"^- fingerprints: " + " ".join(f"{k} (\\S+)" for k in PACKAGE_KEYS)
+    + "$")
 
 
 def fresh_manual_pass(pkg: dict):
@@ -1021,9 +1086,7 @@ def fresh_manual_pass(pkg: dict):
             continue
         m = _LOG_PACKAGE_RE.match(line)
         if m and mode == "manual" and passed and stamp:
-            if (m.group(1), m.group(2), m.group(3), m.group(4)) == \
-                    (pkg["head"], pkg["title"], pkg["body"],
-                     pkg["manifest"]):
+            if m.groups() == tuple(pkg[k] for k in PACKAGE_KEYS):
                 try:
                     when = datetime.datetime.strptime(stamp,
                                                       "%Y-%m-%d %H:%M")
@@ -1047,8 +1110,8 @@ def log_run(report: Report) -> None:
              f"- verdict: {report.verdict}"]
     if report.package and report.verdict.startswith("PASS"):
         p = report.package
-        lines.append(f"- fingerprints: head {p['head']} title {p['title']} "
-                     f"body {p['body']} manifest {p['manifest']}")
+        lines.append("- fingerprints: "
+                     + " ".join(f"{k} {p[k]}" for k in PACKAGE_KEYS))
     if report.checks:
         lines.append("- manifest checks:")
         for name, cmd, outcome in report.checks:
@@ -1084,6 +1147,7 @@ def log_run(report: Report) -> None:
 def run_gate(mode: str, cwd: Path, branch_wanted, base_wanted, title,
              body, issue, plan_path, evidence_path) -> int:
     report = Report(mode)
+    deadline = time.monotonic() + HOOK_BUDGET_S if mode == "hook" else None
     try:
         ensure_installed()
         # Repo, base, and branch resolve first, before the manifest and
@@ -1108,7 +1172,9 @@ def run_gate(mode: str, cwd: Path, branch_wanted, base_wanted, title,
         if not voice_note.startswith("read through the symlink"):
             line += f"; voice guide {voice_note}"
         print(line, file=sys.stderr, flush=True)
-        report.package = package_fingerprints(root, branch, title, body)
+        report.package = package_fingerprints(root, branch, base, repo,
+                                              title, body, issue, plan_path,
+                                              evidence_path)
         if mode == "hook" and report.package:
             stamp = fresh_manual_pass(report.package)
             if stamp:
@@ -1119,13 +1185,13 @@ def run_gate(mode: str, cwd: Path, branch_wanted, base_wanted, title,
                       "description, and manifest, so it isn't running "
                       "again. Opening the pull request.")
                 return 0
-        run_checks(root, manifest["checks"], report)
+        run_checks(root, manifest["checks"], report, deadline)
         live = gather_live(root, base, branch, repo, title, body, issue,
                            plan_path, evidence_path)
         live["manifest"] = manifest_block(manifest, report.checks)
         item = f"{repo}#{branch}"
         data, summary = run_precheck(tool, scope, voice, live, item, root,
-                                     base, branch, repo)
+                                     base, branch, repo, deadline)
         report.precheck = data.get("checks", [])
         report.summary = summary
         if data["verdict"] != "accept":
@@ -1188,10 +1254,27 @@ def run_gate(mode: str, cwd: Path, branch_wanted, base_wanted, title,
 # Hook mode
 # ---------------------------------------------------------------------------
 
+SHELL_OPERATORS = {"&&", "||", ";", "|", "&", "(", ")"}
+
+# The fallback for a command shlex can't split: any gh pr create (or its
+# alias gh pr new), however it is spelled around it.
+_PR_CREATE_RE = re.compile(r"(?:^|[\s;&|(`/])gh\s+pr\s+(?:create|new)\b")
+
+
+def split_command(command: str) -> list[str]:
+    """Shell words, with && ; | and the like as tokens of their own, so
+    `cd x&&gh pr create` still shows the gh. Raises ValueError on a
+    quote shlex can't close."""
+    lex = shlex.shlex(command, posix=True, punctuation_chars=True)
+    lex.whitespace_split = True
+    lex.commenters = ""                 # `Fixes #12` is not a comment
+    return list(lex)
+
+
 def find_pr_create(tokens: list[str]):
     for j in range(len(tokens) - 2):
-        if tokens[j] == "gh" and tokens[j + 1] == "pr" \
-                and tokens[j + 2] == "create":
+        if os.path.basename(tokens[j]) == "gh" and tokens[j + 1] == "pr" \
+                and tokens[j + 2] in ("create", "new"):
             return j + 3
     return None
 
@@ -1215,6 +1298,8 @@ def parse_pr_flags(tokens: list[str], start: int, cwd: str) -> dict:
     i = start
     while i < len(tokens):
         t = tokens[i]
+        if t in SHELL_OPERATORS:
+            break                       # the next command is not gh's
         if t in ("--web", "-w"):
             out["problem"] = ("--web opens the PR in your browser, where "
                               "neither hook can check it. Run gh pr "
@@ -1281,13 +1366,28 @@ def hook_main() -> int:
         payload = json.load(sys.stdin)
     except json.JSONDecodeError:
         return 0
-    if payload.get("tool_name") != "Bash":
+    if not isinstance(payload, dict) or payload.get("tool_name") != "Bash":
         return 0
-    command = (payload.get("tool_input") or {}).get("command", "")
+    tool_input = payload.get("tool_input")
+    command = str((tool_input if isinstance(tool_input, dict) else {})
+                  .get("command") or "")
     try:
-        tokens = shlex.split(command)
+        tokens = split_command(command)
     except ValueError:
-        return 0
+        if not _PR_CREATE_RE.search(command):
+            return 0
+        problem = ("the ship-gate couldn't read this command (a quote it "
+                   "can't match, often an apostrophe in a heredoc), so it "
+                   "can't tell what the PR would ship. Write the PR "
+                   "description to a file first, then run gh pr create "
+                   "--title \"...\" --body-file FILE as a command of its "
+                   "own.")
+        report = Report("hook")
+        report.verdict = "BLOCK (setup)"
+        report.reasons.append(problem)
+        log_run(report)
+        print(f"ship-gate: STOP. {problem}", file=sys.stderr)
+        return 2
     start = find_pr_create(tokens)
     if start is None:
         return 0
@@ -1356,7 +1456,23 @@ def main() -> int:
                 args.plan, args.evidence)):
             ap.error("a run by hand needs --branch (alone for the "
                      "current branch, or with a branch name)")
-        return hook_main()
+        try:
+            return hook_main()
+        except Exception as e:          # anything but a clean verdict
+            # Claude Code only blocks on exit 2. A crash would exit 1 and
+            # let the PR through unchecked, so every crash is a stop.
+            problem = (f"the ship-gate crashed ({type(e).__name__}: {e}), "
+                       "so nothing was checked. Run it by hand on your "
+                       "branch to see the full error: python3 "
+                       "~/.claude/ship-gate/check_gate.py --branch --title "
+                       "\"...\" --body-file pr_draft.md. Show your TF if "
+                       "it keeps happening.")
+            report = Report("hook")
+            report.verdict = "BLOCK (crash)"
+            report.reasons.append(problem)
+            log_run(report)
+            print(f"ship-gate: STOP. {problem}", file=sys.stderr)
+            return 2
 
     body = None
     if args.body_file:
