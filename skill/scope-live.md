@@ -38,10 +38,11 @@ The Path Review house rules do not travel. Out here:
   issue was coordination; out here, check the issue's linked PRs
   before opening yours. If someone's fix is already up, review or
   test theirs instead of racing it.
-- **Deviations get reported upstream, not just recorded.** If your
-  diff materially departs from the plan you posted on the issue, say
-  so in the PR description AND the issue thread. A maintainer who
-  read plan A should never be surprised by diff B.
+- **Deviations go in the PR description.** Your plan is never posted
+  on the issue, so the PR description is the only place a maintainer
+  learns your approach. If your diff materially departs from your
+  plan, update `plan.md` and say what changed and why in the PR
+  description. No note on the issue thread is needed.
 - **Disclosure follows the repo's stated policy, always.** Your
   coursework is AI-assisted by design; where a repo asks for AI-use
   disclosure, the disclosure appears, in your own words, every time.
