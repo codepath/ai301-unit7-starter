@@ -127,9 +127,14 @@ and uses some course credit.
   up on the repo your fork came from.
 
 A pass lasts 30 minutes. If you open the PR through Claude Code within
-30 minutes, with the same commit, title, description, and manifest, the
-hook lets it through without running everything again. Change any of
-those and it runs fresh.
+30 minutes, with the same commit, base, title, description, manifest,
+plan, and test evidence, the hook lets it through without running
+everything again. Change any of those and it runs fresh.
+
+Through the hook, a run has 29 minutes. Claude Code ends a hook at 30,
+and an ended hook would let the PR through, so the ship-gate stops the
+PR itself first. If your checks are slow, run the ship-gate by hand,
+which has no time limit, then open the PR within 30 minutes.
 
 ## 4. What stops the ship-gate, and what to do
 
@@ -137,8 +142,8 @@ There's no way to skip the ship-gate. Every stop says what to fix.
 
 - **No manifest, or it's still the template.** Fill in
   `ship-manifest.md` in the top folder of your clone. The comment at its
-  top explains how. A check with no source stops it too, and so does a
-  row in the second table without a date and a reason.
+  top explains how. A check with no command or no source stops it too,
+  and so does a row in the second table without a date and a reason.
 - **A repo check failed.** It shows the command, its exit code, and the
   end of its output. Fix your code. If the check also fails on main,
   for a reason your fix doesn't touch, move it to the manifest's second
@@ -154,15 +159,18 @@ There's no way to skip the ship-gate. Every stop says what to fix.
     hasn't run in this clone. Add that step (like `uv sync`,
     `.venv/bin/pip install -e ".[dev]"`, or `npm install`) as the first
     row of your manifest, with the same source.
-  - **`timed out`** means the check ran for 25 minutes. Use a quicker
-    command the project names, if it names one, or move the check to
-    the second table with the reason.
+  - **`timed out`** means the check ran for 25 minutes, or used up what
+    was left of the hook's 29. Use a quicker command the project names,
+    if it names one, or move the check to the second table with the
+    reason. **"ran out of time"** means the whole run reached 29 minutes
+    through the hook: run it by hand (section 3), then open the PR.
 - **Your pr-precheck said reject.** It lists the checks your branch
   failed, in your rubric's words. Fix your branch. If a check asks for
   something this repo doesn't ask for, fix that check in your rubric
   instead, and say so in your Unit 7 Toolkit entry. A reject right after
-  a pass means something changed (a commit, the title, the description,
-  or the manifest), or the pass is more than 30 minutes old. Fix what
+  a pass means something changed (a commit, the base, the title, the
+  description, the manifest, the plan, or the test evidence), or the
+  pass is more than 30 minutes old. Fix what
   it names instead of running it again and hoping for a pass.
 - **REFUSAL.** Your pr-precheck still has template files with nothing of
   yours in them, and the message names them. Fill them in yourself,
@@ -184,6 +192,13 @@ There's no way to skip the ship-gate. Every stop says what to fix.
   `gh pr create --web`. Each message says what to do.
 - **pr-precheck couldn't finish its run.** Nothing was checked, so the
   PR didn't open. Run it again, and ask your TF if it keeps happening.
+- **The ship-gate crashed.** Nothing was checked, so the PR didn't open.
+  Run the ship-gate by hand on your branch (section 3) to see the full
+  error, and show it to your TF.
+- **It couldn't read the command.** Usually an apostrophe in a heredoc
+  that writes the PR description. Write the description to a file
+  first, then run `gh pr create --title "..." --body-file pr_draft.md`
+  as a command of its own.
 - **Your voice guard stopped a PR the ship-gate passed.** pr-precheck
   notes voice problems but doesn't reject over them unless your rubric
   says to. Your voice guard does stop on them. Fix the line it quotes in
@@ -220,8 +235,9 @@ Quit any open `claude` session, and run the test in section 2.
 Every run, by hand or through the hook, adds a dated entry to
 `~/.claude/ship-gate/gate-log.md`: the repo, the branch, each check and
 how it went, the result, and the reasons. A pass also records the
-commit and fingerprints of the title, description, and manifest, which
-is how the hook knows a pass is still good.
+commits and fingerprints of the title, description, manifest, plan,
+test evidence, and issue, which is how the hook knows a pass is still
+good.
 
 The log and your manifest stay on your computer, and nothing collects
 them. Use them when you write your Unit 7 Toolkit entry, and again for
